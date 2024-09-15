@@ -211,6 +211,7 @@
 
         if (number === primeNumber) {
             button.classList.add('failed');
+            gameHeader.style.display = 'none';  // "Don't select Prime" を非表示にする
             messageElement.innerHTML = `<span class="failed-text">Failed...</span><br><span class="white-text">You selected </span><span class="prime-text">Prime</span>.`;
             gameOver = true;
         } else {
