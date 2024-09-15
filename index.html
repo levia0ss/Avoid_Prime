@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Can you avoid a prime number?">
+    <title>Avoid Prime</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            background-color: black;
+            color: white;
+        }
+
+        #title-screen {
+            text-align: center;
+        }
+
+        #game-container {
+            text-align: center;
+            display: none;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 100px);
+            grid-gap: 10px;
+            margin-top: 20px;
+        }
+
+        .grid button {
+            width: 100px;
+            height: 100px;
+            font-size: 20px;
+            background-color: blue;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .grid button.selected {
+            background-color: green;
+            cursor: default;
+        }
+
+        .grid button.failed {
+            background-color: red;
+            cursor: default;
+        }
+
+        #retry-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: blue;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #retry-btn:hover {
+            background-color: darkblue;
+        }
+
+        .prime-text {
+            color: red;
+        }
+
+        .safe-text {
+            color: green;
+        }
+
+        .failed-text {
+            color: red;
+        }
+
+        .clear-text {
+            color: yellow;
+        }
+
+        .white-text {
+            color: white;
+        }
+
+        #game-header {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        #message {
+            font-size: 24px;
+            margin-bottom: 20px;
+            min-height: 50px; /* メッセージエリアに余白を確保 */
+        }
+
+        #timer {
+            font-size: 24px;
+            color: yellow;
+        }
+    </style>
+</head>
+<body>
+
+<!-- タイトル画面 -->
+<div id="title-screen">
+    <h1><span>Avoid </span><span class="prime-text">Prime</span></h1>
+    <button id="start-btn" style="padding: 10px 20px; font-size: 18px; background-color: blue; color: white; border: none; cursor: pointer;">start</button>
+</div>
+
+<!-- ゲーム画面 -->
+<div id="game-container">
+    <div id="game-header"><span>Don't select </span><span class="prime-text">Prime</span></div>
+    <div id="message"></div> <!-- メッセージエリア -->
+    <div class="grid" id="button-grid"></div>
+    <button id="retry-btn">Retry</button>
+</div>
+
+<script>
+    let selectedNumbers = [];
+    let primeNumber;
+    let gameOver = false;
+    let startTime;
+    let elapsedTime = 0;
+
+    // タイトル画面とゲーム画面の要素
+    const titleScreen = document.getElementById('title-screen');
+    const gameContainer = document.getElementById('game-container');
+    const buttonGrid = document.getElementById('button-grid');
+    const retryButton = document.getElementById('retry-btn');
+    const startButton = document.getElementById('start-btn');
+    const messageElement = document.getElementById('message');
+    const gameHeader = document.getElementById('game-header');
+
+    // 1000未満の素数リストを取得
+    const primeListBelow1000 = sieveOfEratosthenes(1000);
+    // 1000以上10000未満の素数リストを取得
+    const primeListAbove1000 = sieveOfEratosthenes(10000).filter(n => n >= 1000);
+    const compositeList = generateCompositeNumbers();  // 2つの素数の積で表される合成数
+
+    // 素数を生成する関数
+    function sieveOfEratosthenes(limit) {
+        const sieve = Array(limit + 1).fill(true);
+        sieve[0] = sieve[1] = false;
+
+        for (let i = 2; i <= Math.sqrt(limit); i++) {
+            if (sieve[i]) {
+                for (let j = i * i; j <= limit; j += i) {
+                    sieve[j] = false;
+                }
+            }
+        }
+
+        return sieve.map((isPrime, index) => isPrime ? index : null).filter(n => n);
+    }
+
+    // 合成数を生成する関数
+    function generateCompositeNumbers() {
+        const composites = new Set();
+        const primeCount = primeListBelow1000.length;
+
+        for (let i = 0; i < primeCount; i++) {
+            for (let j = i; j < primeCount; j++) {
+                const product = primeListBelow1000[i] * primeListBelow1000[j];
+                if (product >= 1000 && product < 10000) {
+                    composites.add({ product, factors: [primeListBelow1000[i], primeListBelow1000[j]] });
+                }
+            }
+        }
+
+        return Array.from(composites);
+    }
+
+    // ゲームをリセットして初期化
+    function resetGame() {
+        selectedNumbers = [];
+        gameOver = false;
+        messageElement.innerHTML = '';
+        buttonGrid.innerHTML = '';
+        startTime = new Date().getTime();  // ゲーム開始時間を記録
+        gameHeader.style.display = 'block';  // "Don't select Prime" を再表示
+        initializeGame();
+    }
+
+    // ゲームを初期化する関数
+    function initializeGame() {
+        const compositeSample = compositeList.sort(() => 0.5 - Math.random()).slice(0, 24);
+        const primeSample = [primeListAbove1000[Math.floor(Math.random() * primeListAbove1000.length)]];
+        const questionNumbers = primeSample.concat(compositeSample.map(c => c.product)).sort(() => 0.5 - Math.random());
+
+        primeNumber = primeSample[0];
+
+        questionNumbers.forEach(number => {
+            const button = document.createElement('button');
+            button.textContent = number;
+            button.onclick = () => handleButtonClick(number, button);
+            buttonGrid.appendChild(button);
+        });
+    }
+
+    // ボタンクリック時の処理
+    function handleButtonClick(number, button) {
+        if (gameOver || selectedNumbers.includes(number)) return;
+
+        selectedNumbers.push(number);
+
+        if (number === primeNumber) {
+            button.classList.add('failed');
+            messageElement.innerHTML = `<span class="failed-text">Failed...</span><br><span class="white-text">You selected </span><span class="prime-text">Prime</span>.`;
+            gameOver = true;
+        } else {
+            const composite = compositeList.find(c => c.product === number);
+            button.classList.add('selected');
+            messageElement.innerHTML = `<span class="safe-text">Safe!</span><br><span class="white-text">${number} = ${composite.factors[0]} × ${composite.factors[1]}</span>`;
+        }
+
+        if (selectedNumbers.length === 24 && !gameOver) {
+            clearGame();
+        }
+    }
+
+    // ゲームクリア時の処理
+    function clearGame() {
+        gameOver = true;
+        const clearTime = calculateElapsedTime();  // 経過時間を計算
+
+        // "Don't select Prime" の文言をクリア画面では非表示にする
+        gameHeader.style.display = 'none';
+
+        messageElement.innerHTML = `<span class="clear-text">Clear!</span><br><span class="white-text">You avoided </span><span class="prime-text">Prime</span>!<br><span class="white-text">Your record is </span><span class="clear-text">${clearTime}</span>`;
+        revealPrimeButton();
+    }
+
+    // 素数ボタンを赤く表示
+    function revealPrimeButton() {
+        const buttons = document.querySelectorAll('.grid button');
+        buttons.forEach(button => {
+            if (parseInt(button.textContent) === primeNumber) {
+                button.classList.add('failed');
+            }
+        });
+    }
+
+    // 経過時間を計算する関数
+    function calculateElapsedTime() {
+        const now = new Date().getTime();
+        elapsedTime = now - startTime;
+
+        const totalSeconds = Math.floor(elapsedTime / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+
+        // 59:59を超えた場合の制限
+        if (minutes >= 60) return '59:59';
+
+        return `${padZero(minutes)}:${padZero(seconds)}`;
+    }
+
+    // 0を追加するための補助関数
+    function padZero(num) {
+        return num < 10 ? '0' + num : num;
+    }
+
+    // タイトル画面の「start」ボタンのクリック処理
+    startButton.onclick = () => {
+        titleScreen.style.display = 'none';
+        gameContainer.style.display = 'block';
+        resetGame();
+    };
+
+    // ゲーム終了時のRetryボタンのクリック処理
+    retryButton.onclick = () => {
+        gameContainer.style.display = 'none';
+        titleScreen.style.display = 'block';
+    };
+
+</script>
+
+</body>
+</html>
