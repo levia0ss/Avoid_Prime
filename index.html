@@ -16,9 +16,14 @@
             margin: 0;
             background-color: black;
             color: white;
+            text-align: center;
         }
 
         #title-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             text-align: center;
         }
 
@@ -29,19 +34,25 @@
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(5, 100px);
+            grid-template-columns: repeat(5, 1fr); /* 5列に設定 */
             grid-gap: 10px;
             margin-top: 20px;
+            width: 100%; /* 幅をビューポートに依存 */
+            max-width: 500px; /* 最大幅を500pxに設定 */
+            justify-content: center; /* 中央揃え */
         }
 
         .grid button {
-            width: 100px;
-            height: 100px;
-            font-size: 20px;
+            width: 100%;
+            aspect-ratio: 1; /* 正方形を維持 */
+            font-size: calc(10px + 2vw); /* デバイスに応じてサイズ調整 */
             background-color: blue;
             color: white;
             border: none;
             cursor: pointer;
+            display: flex;
+            justify-content: center; /* 水平方向に中央揃え */
+            align-items: center; /* 垂直方向に中央揃え */
         }
 
         .grid button.selected {
@@ -91,6 +102,7 @@
         #game-header {
             font-size: 32px;
             margin-bottom: 20px;
+            text-align: center;
         }
 
         #message {
@@ -211,9 +223,9 @@
 
         if (number === primeNumber) {
             button.classList.add('failed');
-            gameHeader.style.display = 'none';  // "Don't select Prime" を非表示にする
             messageElement.innerHTML = `<span class="failed-text">Failed...</span><br><span class="white-text">You selected </span><span class="prime-text">Prime</span>.`;
             gameOver = true;
+            gameHeader.style.display = 'none';  // 失敗時には "Don't select Prime" を非表示に
         } else {
             const composite = compositeList.find(c => c.product === number);
             button.classList.add('selected');
@@ -274,10 +286,10 @@
         resetGame();
     };
 
-    // ゲーム終了時のRetryボタンのクリック処理
+    // リトライボタンを押すと、タイトル画面に戻る
     retryButton.onclick = () => {
-        gameContainer.style.display = 'none';
-        titleScreen.style.display = 'block';
+        gameContainer.style.display = 'none';  // ゲーム画面を非表示
+        titleScreen.style.display = 'block';   // タイトル画面を再表示
     };
 
 </script>
